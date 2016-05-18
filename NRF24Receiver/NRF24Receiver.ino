@@ -5,43 +5,40 @@
 
 RF24 radio(9, 10);
 
-const uint64_t pipes [2] = {0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL};
+const uint64_t pipes [1] = {0xF0F0F0F0E1LL};
+
+struct myData {
+	byte x;
+	byte y;
+	byte button;
+};
+
+myData data;
 
 void setup() {
-  Serial.begin(57600);
-  printf_begin();
-  printf("\n\rGetting started with NRF24L01\n\r");
+	Serial.begin(57600);
+	printf_begin();
+	printf("\n\rGetting started with NRF24L01\n\r");
 
-  radio.begin();
-  radio.setRetries(15, 15);
-  radio.setPayloadSize(8);
+	radio.begin();
+	radio.setRetries(15, 15);
+	radio.setPayloadSize(8);
 
-  radio.openWritingPipe(pipes[1]);
-  radio.openReadingPipe(1, pipes[0]);
+	radio.openReadingPipe(1, pipes[0]);
 
-  radio.startListening();
-  
-  radio.printDetails();
+	radio.startListening();
+	
+	radio.printDetails();
 }
 
 void loop() {
-  if (radio.available()){
-      unsigned long gotTime;
-      bool done = false;
+	if (radio.available()){
+		radio.read(&data, sizeof(data));
+	}
 
-      while (!done){
-          done = radio.read(&gotTime, sizeof(unsigned long));
-          printf("Got time: %lu...\n\r", gotTime);
-
-          //Little delay to let the other unit shift to receive mode
-          delay(20);
-        }
-
-        radio.stopListening();
-
-        radio.write(&gotTime, sizeof(unsigned long));
-        printf("Sent response. \n\r");
-
-        radio.startListening();
-    }
+	Serial.print(data.x);
+	Serial.print("\t");
+	Serial.print(data.y);
+	Serial.print("\t");
+	Serial.println(data.button);
 }

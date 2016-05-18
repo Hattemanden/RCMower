@@ -5,58 +5,57 @@
 
 RF24 radio(9, 10);
 
-const uint64_t pipes [2] = {0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL};
+const uint64_t pipes [1] = {0xF0F0F0F0E1LL};
+
+const int VRx = 0;
+const int VRy = 1;
+const int buttonPin = 6;
+
+struct myData {
+	byte x;
+	byte y;
+	byte button;
+};
+
+myData data;
 
 void setup() {
-  Serial.begin(57600);
-  printf_begin();
-  printf("\n\rGetting started with NRF24L01\n\r");
+	Serial.begin(57600);
+	printf_begin();
+	printf("\n\rGetting started with NRF24L01\n\r");
 
-  radio.begin();
-  radio.setRetries(15, 15);
-  radio.setPayloadSize(8);
+	radio.begin();
+	radio.setRetries(15, 15);
+	radio.setPayloadSize(8);
 
-  radio.openWritingPipe(pipes[0]);
-  radio.openReadingPipe(1, pipes[1]);
+	radio.openWritingPipe(pipes[0]);
 
-  radio.startListening();
-  
-  radio.printDetails();
+	radio.startListening();
+	
+	radio.printDetails();
+
+	pinMode(buttonPin, INPUT_PULLUP);
+
+	data.x = 127;
+	data.y = 127;
+	data.button = 0;
 }
 
 void loop() {
-  radio.stopListening();
+	radio.stopListening();
 
-  unsigned long time = millis();
-  printf("Now sending %lu...", time);
+	data.x = readPot(VRx);
+	data.y = readPot(VRy);
+	data.button = readPin(buttonPin);
 
-  bool OK = radio.write(&time, sizeof(unsigned long));
+	radio.write(&data, sizeof(data));
+}
 
-  if (OK){
-      printf("OK...");
-    } else {
-      printf("Failed...");  
-    }
+byte readPot(const int pin){
+	int value = analogRead(pin);
+	return map(value, 0, 1023, 0, 255);
+}
 
-    radio.startListening();
-
-   // Continue listening
-   unsigned long startedWaitingAt = millis();
-   bool timeOut = false;
-
-   while(! radio.available() && !timeOut){
-      if (millis() - timeOut > 200){
-          timeOut = false;
-        }
-
-   if(timeOut){
-      printf("Failed, timeout...\n\r");
-      timeOut = false;
-    } else {
-        unsigned long gotTime;
-        radio.read(&gotTime, sizeof(unsigned long));
-        printf("Got response %lu, round-trip delay: %lu\n\r", gotTime, millis()-gotTime);
-      }
-    }
-    delay(20);
+byte readPin(const int pin){
+	return digitalRead(pin);
 }
